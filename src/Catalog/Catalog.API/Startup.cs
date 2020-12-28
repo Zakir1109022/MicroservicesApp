@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,13 +33,31 @@ namespace Catalog.API
         {
             services.AddControllers();
 
-            //Need to understand
+            #region Configuration Dependencies
+
             services.Configure<CatalogDatabaseSettings>(Configuration.GetSection(nameof(CatalogDatabaseSettings)));
-            services.AddSingleton<ICatalogDatabaseSettings>(sp => 
-                     sp.GetRequiredService<IOptions<CatalogDatabaseSettings>>().Value);
+
+            services.AddSingleton<ICatalogDatabaseSettings>(sp =>
+                sp.GetRequiredService<IOptions<CatalogDatabaseSettings>>().Value);
+
+            #endregion
+
+            #region Project Dependencies
 
             services.AddTransient<ICatalogContext, CatalogContext>();
             services.AddTransient<IProductRepository, ProductRepository>();
+
+            #endregion
+
+
+            #region Swagger Dependencies
+
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "Catalog API", Version = "v1" });
+            });
+
+            #endregion
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -56,6 +75,12 @@ namespace Catalog.API
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+            });
+
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Catalog API V1");
             });
         }
     }
